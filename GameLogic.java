@@ -15,6 +15,7 @@ public class GameLogic implements PlayableLogic {
     public static boolean theWinnerIsPlayerOne;
     private ArrayList<ConcretePiece> pieces = new ArrayList<>();  // The arryList will help us keep the step history of each player
     private ArrayList<Position> list = new ArrayList<>();     // list that help us to save all the soliders that killed
+    private ArrayList<ConcretePiece> piecesOnTheBoard= new ArrayList<>();
     GameLogic() {
         this.defender = new ConcretePlayer(true);
         this.attacker = new ConcretePlayer(false);
@@ -148,6 +149,7 @@ public class GameLogic implements PlayableLogic {
                 if (board[i][j] != null) {
                     positionBoard[i][j].add(board[i][j]);
                     pieces.add(board[i][j]);
+                    piecesOnTheBoard.add(board[i][j]);
                     Position p = new Position(i, j);
                     board[i][j].addSteps(p);
 
@@ -217,10 +219,14 @@ public class GameLogic implements PlayableLogic {
 
         if (!(board[a.getX()][a.getY()] instanceof King)) {
             if (b.getX() != 0) {
-                if (xl1.getX() == 0 || (board[xl2.getX()][xl2.getY()] != null && (board[xl2.getX()][xl2.getY()] instanceof Pawn) && board[xl2.getX()][xl2.getY()].getOwner().isPlayerOne() == board[a.getX()][a.getY()].getOwner().isPlayerOne()) || sides(xl2)) { //We are checking the possibilities for capturing a soldier, including extreme cases where the soldier is near the corner or near the edge of the board
+                if (xl1.getX() == 0 || (board[xl2.getX()][xl2.getY()] != null && (board[xl2.getX()][xl2.getY()] instanceof Pawn) && board[xl2.getX()][xl2.getY()].getOwner().isPlayerOne() == board[a.getX()][a.getY()].getOwner().isPlayerOne()) || sides(xl2)) {
                     if (board[xl1.getX()][xl1.getY()] instanceof Pawn && board[xl1.getX()][xl1.getY()].getOwner().isPlayerOne() != board[a.getX()][a.getY()].getOwner().isPlayerOne()) {
                         list.add(xl1);
                         ((Pawn) board[a.getX()][a.getY()]).kill();
+                        for (int i=0; i<piecesOnTheBoard.size(); i++){
+                            if (board[xl1.getX()][xl1.getY()]== piecesOnTheBoard.get(i))
+                                piecesOnTheBoard.remove(i);
+                        }
                         board[xl1.getX()][xl1.getY()] = null;
                     }
                 }
@@ -229,6 +235,10 @@ public class GameLogic implements PlayableLogic {
                 if (board[xr1.getX()][xr1.getY()] instanceof Pawn && board[xr1.getX()][xr1.getY()].getOwner().isPlayerOne() != board[a.getX()][a.getY()].getOwner().isPlayerOne()) {
                     list.add(xr1);
                     ((Pawn) board[a.getX()][a.getY()]).kill();
+                    for (int i=0; i<piecesOnTheBoard.size(); i++){
+                        if (board[xr1.getX()][xr1.getY()] == piecesOnTheBoard.get(i))
+                            piecesOnTheBoard.remove(i);
+                    }
                     board[xr1.getX()][xr1.getY()] = null;
                 }
             }
@@ -238,6 +248,10 @@ public class GameLogic implements PlayableLogic {
                     if (board[yu1.getX()][yu1.getY()] instanceof Pawn && board[yu1.getX()][yu1.getY()].getOwner().isPlayerOne() != board[a.getX()][a.getY()].getOwner().isPlayerOne()) {
                         list.add(yu1);
                         ((Pawn) board[a.getX()][a.getY()]).kill();
+                        for (int i=0; i<piecesOnTheBoard.size(); i++){
+                            if (board[yu1.getX()][yu1.getY()] == piecesOnTheBoard.get(i))
+                                piecesOnTheBoard.remove(i);
+                        }
                         board[yu1.getX()][yu1.getY()] = null;
                     }
                 }
@@ -246,6 +260,10 @@ public class GameLogic implements PlayableLogic {
                 if (board[yd1.getX()][yd1.getY()] instanceof Pawn && board[yd1.getX()][yd1.getY()].getOwner().isPlayerOne() != board[a.getX()][a.getY()].getOwner().isPlayerOne()) {
                     list.add(yd1);
                     ((Pawn) board[a.getX()][a.getY()]).kill();
+                    for (int i=0; i<piecesOnTheBoard.size(); i++){
+                        if (board[yd1.getX()][yd1.getY()]  == piecesOnTheBoard.get(i))
+                            piecesOnTheBoard.remove(i);
+                    }
                     board[yd1.getX()][yd1.getY()] = null;
                 }
             }
@@ -293,119 +311,117 @@ public class GameLogic implements PlayableLogic {
     private ConcretePlayer isFinish(Position b){
         Position king= whereIsTheKing (board);
         ConcretePlayer whoIsTheWinner=null;
-        if (sides(king)){                       //When the king reaches one of the corners the game ends, and the defender win
+        boolean fl= true;
+        for (int i=0; i<piecesOnTheBoard.size(); i++){ // check if the defender eat all the attacker
+            if (!piecesOnTheBoard.get(i).getOwner().isPlayerOne())
+                fl=false;
+        }
+        if (fl){
             whoIsTheWinner= this.defender;
             this.finish = true;
         }
-        else { Position lKing= new Position(king.getX()-1, king.getY());
-            Position rKing= new Position(king.getX()+1, king.getY());
-            Position uKing= new Position(king.getX(), king.getY()-1);
-            Position dKing= new Position(king.getX(), king.getY()+1);
+        else {
+            if (sides(king)) {
+                whoIsTheWinner = this.defender;
+                this.finish = true;
+            } else {
+                Position lKing = new Position(king.getX() - 1, king.getY());
+                Position rKing = new Position(king.getX() + 1, king.getY());
+                Position uKing = new Position(king.getX(), king.getY() - 1);
+                Position dKing = new Position(king.getX(), king.getY() + 1);
 
-            if(king.getX()==0) { //Checking all possible cases for capturing the king,Because the game ends when the king is captured
-                if (king.getY() == 1) {
-                    if (whoIsTheOwnerPawm(rKing) == "black" && whoIsTheOwnerPawm(dKing) == "black") {
-                        whoIsTheWinner = this.attacker;
-                        this.finish = true;
-                    }
-                }
-                else {
-                    if(king.getY() == 9){
-                        if(whoIsTheOwnerPawm(rKing) == "black" && whoIsTheOwnerPawm(uKing) == "black"){
-                            whoIsTheWinner = this.attacker;
-                            this.finish = true;
-                        }
-                    }
-                    else {
-                        if(whoIsTheOwnerPawm(rKing) == "black" && whoIsTheOwnerPawm(dKing) == "black" && whoIsTheOwnerPawm(uKing) == "black") {
-                            whoIsTheWinner = this.attacker;
-                            this.finish = true;
-                        }
-                    }
-                }
-            }
-            else {
-                if (king.getX()==10) {
+                if (king.getX() == 0) {
                     if (king.getY() == 1) {
-                        if (whoIsTheOwnerPawm(lKing) == "black" && whoIsTheOwnerPawm(dKing) == "black"){
+                        if (whoIsTheOwnerPawm(rKing) == "black" && whoIsTheOwnerPawm(dKing) == "black") {
                             whoIsTheWinner = this.attacker;
                             this.finish = true;
                         }
-                    }
-                    else {
-                        if (king.getY() == 9){
-                            if(whoIsTheOwnerPawm(lKing) == "black" && whoIsTheOwnerPawm(uKing) == "black"){
+                    } else {
+                        if (king.getY() == 9) {
+                            if (whoIsTheOwnerPawm(rKing) == "black" && whoIsTheOwnerPawm(uKing) == "black") {
                                 whoIsTheWinner = this.attacker;
                                 this.finish = true;
                             }
-                        }
-                        else {
-                            if (whoIsTheOwnerPawm(lKing) == "black" && whoIsTheOwnerPawm(dKing) == "black" && whoIsTheOwnerPawm(uKing) == "black") {
+                        } else {
+                            if (whoIsTheOwnerPawm(rKing) == "black" && whoIsTheOwnerPawm(dKing) == "black" && whoIsTheOwnerPawm(uKing) == "black") {
                                 whoIsTheWinner = this.attacker;
                                 this.finish = true;
                             }
                         }
                     }
-                }
-                else {
-                    if(king.getY()==0){
-                        if(king.getX()==1){
-                            if(whoIsTheOwnerPawm(rKing) == "black" && whoIsTheOwnerPawm(dKing) == "black"){
+                } else {
+                    if (king.getX() == 10) {
+                        if (king.getY() == 1) {
+                            if (whoIsTheOwnerPawm(lKing) == "black" && whoIsTheOwnerPawm(dKing) == "black") {
                                 whoIsTheWinner = this.attacker;
                                 this.finish = true;
                             }
-                        }
-                        else {
-                            if(king.getX() == 9) {
-                                if(whoIsTheOwnerPawm(lKing) == "black" && whoIsTheOwnerPawm(dKing) == "black"){
+                        } else {
+                            if (king.getY() == 9) {
+                                if (whoIsTheOwnerPawm(lKing) == "black" && whoIsTheOwnerPawm(uKing) == "black") {
                                     whoIsTheWinner = this.attacker;
                                     this.finish = true;
                                 }
-                            }
-                            else {
-                                if (whoIsTheOwnerPawm(rKing) == "black" && whoIsTheOwnerPawm(lKing) == "black" && whoIsTheOwnerPawm(dKing) == "black") {
+                            } else {
+                                if (whoIsTheOwnerPawm(lKing) == "black" && whoIsTheOwnerPawm(dKing) == "black" && whoIsTheOwnerPawm(uKing) == "black") {
                                     whoIsTheWinner = this.attacker;
                                     this.finish = true;
                                 }
                             }
                         }
-                    }
-                    else {
-                        if(king.getY()==10){
-                            if(king.getX()==1){
-                                if(whoIsTheOwnerPawm(rKing) == "black" && whoIsTheOwnerPawm(uKing) == "black"){
+                    } else {
+                        if (king.getY() == 0) {
+                            if (king.getX() == 1) {
+                                if (whoIsTheOwnerPawm(rKing) == "black" && whoIsTheOwnerPawm(dKing) == "black") {
                                     whoIsTheWinner = this.attacker;
                                     this.finish = true;
                                 }
-                            }
-                            else{
-                                if(king.getX() == 9){
-                                    if(whoIsTheOwnerPawm(lKing) == "black" && whoIsTheOwnerPawm(uKing) == "black"){
+                            } else {
+                                if (king.getX() == 9) {
+                                    if (whoIsTheOwnerPawm(lKing) == "black" && whoIsTheOwnerPawm(dKing) == "black") {
                                         whoIsTheWinner = this.attacker;
                                         this.finish = true;
                                     }
-                                }
-                                else {
-                                    if (whoIsTheOwnerPawm(rKing) == "black" && whoIsTheOwnerPawm(lKing) == "black" && whoIsTheOwnerPawm(uKing) == "black") {
+                                } else {
+                                    if (whoIsTheOwnerPawm(rKing) == "black" && whoIsTheOwnerPawm(lKing) == "black" && whoIsTheOwnerPawm(dKing) == "black") {
                                         whoIsTheWinner = this.attacker;
                                         this.finish = true;
                                     }
                                 }
                             }
-                        }
-                        else {
-                            if (whoIsTheOwnerPawm(lKing) == "black" && whoIsTheOwnerPawm(rKing) == "black" && whoIsTheOwnerPawm(uKing) == "black" && whoIsTheOwnerPawm(dKing) == "black") {
-                                whoIsTheWinner = this.attacker;
-                                this.finish = true;
+                        } else {
+                            if (king.getY() == 10) {
+                                if (king.getX() == 1) {
+                                    if (whoIsTheOwnerPawm(rKing) == "black" && whoIsTheOwnerPawm(uKing) == "black") {
+                                        whoIsTheWinner = this.attacker;
+                                        this.finish = true;
+                                    }
+                                } else {
+                                    if (king.getX() == 9) {
+                                        if (whoIsTheOwnerPawm(lKing) == "black" && whoIsTheOwnerPawm(uKing) == "black") {
+                                            whoIsTheWinner = this.attacker;
+                                            this.finish = true;
+                                        }
+                                    } else {
+                                        if (whoIsTheOwnerPawm(rKing) == "black" && whoIsTheOwnerPawm(lKing) == "black" && whoIsTheOwnerPawm(uKing) == "black") {
+                                            whoIsTheWinner = this.attacker;
+                                            this.finish = true;
+                                        }
+                                    }
+                                }
+                            } else {
+                                if (whoIsTheOwnerPawm(lKing) == "black" && whoIsTheOwnerPawm(rKing) == "black" && whoIsTheOwnerPawm(uKing) == "black" && whoIsTheOwnerPawm(dKing) == "black") {
+                                    whoIsTheWinner = this.attacker;
+                                    this.finish = true;
+                                } else {
+                                    this.finish = false;
+                                }
                             }
-                            else {
-                                this.finish = false;
-                            }
-                        }
 
+                        }
                     }
-                }
 
+                }
             }
         }
         return whoIsTheWinner;
